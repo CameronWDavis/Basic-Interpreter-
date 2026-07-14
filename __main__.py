@@ -1,11 +1,9 @@
 from argparse import ArgumentParser
-from BASIC.executioner import execute
+from .executioner import execute
 
 if __name__ == "__main__":
-    # Parse the file argument
-    file_parser = ArgumentParser("NanoBASIC")
+    file_parser = ArgumentParser("BASIC")
     file_parser.add_argument("basic_file",
-                             help="A text file containing NanoBASIC code.")
+                             help="A text file containing BASIC code.")
     arguments = file_parser.parse_args()
     execute(arguments.basic_file)
-    

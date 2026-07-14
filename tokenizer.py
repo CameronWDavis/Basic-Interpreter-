@@ -3,6 +3,7 @@ from typing import TextIO
 import re
 from dataclasses import dataclass
 
+
 class TokenType(Enum):
     COMMENT = (r'rem.*', False)
     WHITESPACE = (r'[ \t\n\r]', False)
@@ -30,9 +31,47 @@ class TokenType(Enum):
     NUMBER = (r'-?[0-9]+', True)
     STRING = (r'".*"', True)
 
-def __init__(self, pattern: str, has_associated_value: bool):
-    self.pattern = pattern
-    self.has_associated_value = has_associated_value
+    def __init__(self, pattern: str, has_associated_value: bool):
+        self.pattern = pattern
+        self.has_associated_value = has_associated_value
 
-def __repr__(self) -> str:
-    return self.name
+    def __repr__(self) -> str:
+        return self.name
+
+
+@dataclass(frozen=True)
+class Token:
+    kind: TokenType
+    line_num: int
+    col_start: int
+    col_end: int
+    associated_value: str | int | None
+
+
+def tokenize(text_file: TextIO) -> list[Token]:
+    tokens: list[Token] = []
+    for line_num, line in enumerate(text_file.readlines(), start=1):
+        col_start: int = 1
+        while len(line) > 0:
+            found: re.Match | None = None
+            for possibility in TokenType:
+                found = re.match(possibility.pattern, line, re.IGNORECASE)
+                if found:
+                    col_end: int = col_start + found.end() - 1
+                    if possibility is not TokenType.WHITESPACE and possibility is not TokenType.COMMENT:
+                        associated_value: str | int | None = None
+                        if possibility.has_associated_value:
+                            if possibility is TokenType.NUMBER:
+                                associated_value = int(found.group(0))
+                            elif possibility is TokenType.VARIABLE:
+                                associated_value = found.group()
+                            elif possibility is TokenType.STRING:
+                                associated_value = found.group(0)[1:-1]
+                        tokens.append(Token(possibility, line_num, col_start, col_end, associated_value))
+                    line = line[found.end():]
+                    col_start = col_end + 1
+                    break
+            if not found:
+                print(f"Syntax error on line {line_num} column {col_start}")
+                break
+    return tokens
